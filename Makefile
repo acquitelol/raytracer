@@ -1,4 +1,4 @@
-ELLE_LIBS ?= -z -lraylib -z -framework -z OpenGL
+ELLE_LIBS ?= -lraylib -framework OpenGL
 ELLE_FLAGS ?= -o raytracer
 
 default: raytracer
@@ -8,4 +8,4 @@ run: raytracer
 	$<
 
 raytracer: src/main.le
-	ellec $< $(ELLE_FLAGS) $(ELLE_LIBS)
+	ellec $< $(ELLE_FLAGS) $(foreach L,$(ELLE_LIBS),-z $(L))
