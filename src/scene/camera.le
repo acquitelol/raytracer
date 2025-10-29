@@ -1,0 +1,54 @@
+use std/raylib;
+
+use ../lib/enums;
+
+global pub;
+
+fn Camera3D::apply_on_shader(Camera3D self, Shader shader) {
+    aspect := #cast(f32, Screen::Width) / #cast(f32, Screen::Height);
+    forward := self.target.sub(self.position).normalize();
+    right := forward.cross(self.up).normalize();
+    up := right.cross(forward);
+
+    rl::set_shader_value(
+        shader,
+        rl::get_shader_location(shader, "camera.position"),
+        &self.position,
+        ShaderUniformDataType::SHADER_UNIFORM_VEC3
+    );
+
+    rl::set_shader_value(
+        shader,
+        rl::get_shader_location(shader, "camera.forward"),
+        Box::new(forward).to_ptr(),
+        ShaderUniformDataType::SHADER_UNIFORM_VEC3
+    );
+
+    rl::set_shader_value(
+        shader,
+        rl::get_shader_location(shader, "camera.right"),
+        Box::new(right).to_ptr(),
+        ShaderUniformDataType::SHADER_UNIFORM_VEC3
+    );
+
+    rl::set_shader_value(
+        shader,
+        rl::get_shader_location(shader, "camera.up"),
+        Box::new(up).to_ptr(),
+        ShaderUniformDataType::SHADER_UNIFORM_VEC3
+    );
+
+    rl::set_shader_value(
+        shader,
+        rl::get_shader_location(shader, "camera.fov"),
+        &self.fovy,
+        ShaderUniformDataType::SHADER_UNIFORM_FLOAT
+    );
+
+    rl::set_shader_value(
+        shader,
+        rl::get_shader_location(shader, "camera.ar"),
+        Box::new(aspect).to_ptr(),
+        ShaderUniformDataType::SHADER_UNIFORM_FLOAT
+    );
+}

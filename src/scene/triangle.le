@@ -1,0 +1,39 @@
+use std/raylib;
+use ../lib/aabb;
+
+global pub;
+
+struct Triangle {
+    Vector3 v0,
+    f32 pad0,
+    Vector3 v1,
+    f32 pad1,
+    Vector3 v2,
+    f32 pad2,
+    Vector3 n0,
+    f32 pad3,
+    Vector3 n1,
+    f32 pad4,
+    Vector3 n2,
+    f32 pad5
+}
+
+fn Triangle::center(Triangle self) -> Vector3 {
+    return self.v0.add(self.v1).add(self.v2).scale(1 / 3);
+}
+
+fn Triangle::aabb(Triangle self) -> AABB {
+    min := Vector3::new(
+        math::min(self.v0.x, math::min(self.v1.x, self.v2.x)),
+        math::min(self.v0.y, math::min(self.v1.y, self.v2.y)),
+        math::min(self.v0.z, math::min(self.v1.z, self.v2.z))
+    );
+
+    max := Vector3::new(
+        math::max(self.v0.x, math::max(self.v1.x, self.v2.x)),
+        math::max(self.v0.y, math::max(self.v1.y, self.v2.y)),
+        math::max(self.v0.z, math::max(self.v1.z, self.v2.z))
+    );
+
+    return AABB { min, max };
+}

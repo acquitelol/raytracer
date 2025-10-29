@@ -1,0 +1,37 @@
+use std/raylib;
+
+global pub;
+
+struct Plane {
+    Vector3 point,
+    Vector3 normal,
+    Color color
+}
+
+fn Plane::apply_on_shader(Plane self, Shader shader) {
+    rl::set_shader_value(
+        shader,
+        rl::get_shader_location(shader, "plane.point"),
+        &self.point,
+        ShaderUniformDataType::SHADER_UNIFORM_VEC3
+    );
+
+    rl::set_shader_value(
+        shader,
+        rl::get_shader_location(shader, "plane.normal"),
+        &self.normal,
+        ShaderUniformDataType::SHADER_UNIFORM_VEC3
+    );
+
+    rl::set_shader_value(
+        shader,
+        rl::get_shader_location(shader, "plane.color"),
+        [
+            #cast(f32, self.color.r) / 255.0,
+            #cast(f32, self.color.g) / 255.0,
+            #cast(f32, self.color.b) / 255.0,
+            #cast(f32, self.color.a) / 255.0,
+        ].elements,
+        ShaderUniformDataType::SHADER_UNIFORM_VEC4
+    );
+}

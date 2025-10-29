@@ -1,0 +1,32 @@
+use std/raylib;
+global pub, external;
+
+enum GL @repr(u32) {
+    TEXTURE_BUFFER = 0x8C2A,
+    RGBA32F = 0x8814,
+    STATIC_DRAW = 0x88E4,
+    TEXTURE0 = 0x84C0,
+    ACTIVE_UNIFORMS = 0x8B86
+}
+
+fn Vector3Transform(Vector3 v, Matrix mat) @alias(Vector3::transform) -> Vector3;
+fn MatrixTranslate(f32 x, f32 y, f32 z) @alias(Matrix::translate) -> Matrix;
+fn MatrixRotate(Vector3 axis, f32 angle) @alias(Matrix::rotate) -> Matrix;
+fn MatrixScale(f32 x, f32 y, f32 z) @alias(Matrix::scale) -> Matrix;
+fn MatrixMultiply(Matrix left, Matrix right) @alias(Matrix::mul) -> Matrix;
+fn MatrixSubtract(Matrix left, Matrix right) @alias(Matrix::sub) -> Matrix;
+fn MatrixAdd(Matrix left, Matrix right) @alias(Matrix::add) -> Matrix;
+fn MatrixInvert(Matrix mat) @alias(Matrix::inverse) -> Matrix;
+fn MatrixTranspose(Matrix mat) @alias(Matrix::transpose) -> Matrix;
+
+fn glGenBuffers(i32 n, u32 *buffers);
+fn glGenTextures(i32 n, u32 *textures);
+fn glBindBuffer(GL target, u32 buffer);
+fn glBindTexture(GL target, u32 texture);
+fn glBufferData(GL target, u32 len, void *data, GL kind);
+fn glGetUniformLocation(u32 id, string name) -> i32;
+fn glTexBuffer(GL target, GL x, u32 y);
+fn glUniform1i(i32 loc, u32 x);
+fn glActiveTexture(GL target);
+fn glGetError() -> GL;
+fn glUseProgram(u64 id);

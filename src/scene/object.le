@@ -1,0 +1,57 @@
+use std/raylib;
+
+use ../lib/enums;
+
+global pub;
+
+struct Object {
+    Model model,
+    Color color,
+    f32 intensity,
+    f32 ior,
+    f32 rough,
+    Kind kind,
+    Matrix transform
+}
+
+fn Object::apply_on_shader(Object self, Shader shader, u64 i) {
+    rl::set_shader_value(
+        shader,
+        rl::get_shader_location(shader, "objects[{}].color".format(i)),
+        [
+            #cast(f32, self.color.r) / 255.0,
+            #cast(f32, self.color.g) / 255.0,
+            #cast(f32, self.color.b) / 255.0,
+            #cast(f32, self.color.a) / 255.0,
+        ].elements,
+        ShaderUniformDataType::SHADER_UNIFORM_VEC4
+    );
+
+    rl::set_shader_value(
+        shader,
+        rl::get_shader_location(shader, "objects[{}].intensity".format(i)),
+        &self.intensity,
+        ShaderUniformDataType::SHADER_UNIFORM_FLOAT
+    );
+
+    rl::set_shader_value(
+        shader,
+        rl::get_shader_location(shader, "objects[{}].ior".format(i)),
+        &self.ior,
+        ShaderUniformDataType::SHADER_UNIFORM_FLOAT
+    );
+
+    rl::set_shader_value(
+        shader,
+        rl::get_shader_location(shader, "objects[{}].rough".format(i)),
+        &self.rough,
+        ShaderUniformDataType::SHADER_UNIFORM_FLOAT
+    );
+
+    rl::set_shader_value(
+        shader,
+        rl::get_shader_location(shader, "objects[{}].kind".format(i)),
+        &self.kind,
+        ShaderUniformDataType::SHADER_UNIFORM_INT
+    );
+}

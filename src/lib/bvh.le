@@ -1,0 +1,165 @@
+use std/raylib;
+
+use aabb;
+use ../scene/triangle;
+
+global pub;
+
+struct BVHNode {
+    AABB bounds,
+    f32 left,
+    f32 right,
+    f32 start,
+    f32 end,
+}
+
+struct Bucket {
+    i32 count,
+    AABB bounds
+}
+
+fn partition_triangles(Triangle[] triangles, i32 start, i32 end, i32 axis) -> i32 {
+    min_c := Vector3::from(1.0e30);
+    max_c := Vector3::from(-1.0e30);
+
+    for i in start..end {
+        c := triangles[i].center();
+
+        if c.x < min_c.x { min_c.x = c.x; }
+        if c.y < min_c.y { min_c.y = c.y; }
+        if c.z < min_c.z { min_c.z = c.z; }
+        if c.x > max_c.x { max_c.x = c.x; }
+        if c.y > max_c.y { max_c.y = c.y; }
+        if c.z > max_c.z { max_c.z = c.z; }
+    }
+
+    range := max_c.sub(min_c).get(axis);
+
+    if range < 1.0e-5 {
+        return start + (end - start) / 2;
+    }
+
+    // yes, 2 buckets is very low
+    // strangely, performance degrades as I increase the number of buckets
+    // やり方間違ってるかもwww ¯\_(ᵕ—ᴗ—)_/¯
+    bucket_count := 2;
+    Bucket buckets[bucket_count];
+    i32 left_counts[bucket_count];
+    i32 right_counts[bucket_count];
+    AABB left_bounds[bucket_count];
+    AABB right_bounds[bucket_count];
+
+    for i in 0..bucket_count {
+        buckets[i] = Bucket {
+            count = 0,
+            bounds = left_bounds[i] = right_bounds[i] = AABB {
+                min = Vector3::from(1.0e30),
+                max = Vector3::from(-1.0e30)
+            }
+        };
+
+        left_counts[i] = right_counts[i] = 0;
+    }
+
+    for i in start..end {
+        c := triangles[i].center().get(axis);
+        idx := #cast(i32, ((c - min_c.get(axis)) / range) * (bucket_count - 1));
+        idx := math::clamp(idx, 0, bucket_count - 1);
+
+        (&buckets[idx]).count += 1;
+        (&buckets[idx]).bounds = buckets[idx].bounds.merge(triangles[i].aabb());
+    }
+
+    acc := 0;
+    for i in 0..bucket_count {
+        acc += buckets[i].count;
+        left_counts[i] = acc;
+        left_bounds[i] = i == 0
+            ? buckets[i].bounds
+            : left_bounds[i - 1].merge(buckets[i].bounds);
+    }
+
+    acc := 0;
+    for i in (0..bucket_count).rev() {
+        acc += buckets[i].count;
+        right_counts[i] = acc;
+        right_bounds[i] = i == bucket_count - 1
+            ? buckets[i].bounds
+            : right_bounds[i + 1].merge(buckets[i].bounds);
+    }
+
+    best_split := -1;
+    best_cost := 1e30;
+
+    for i in 0..(bucket_count - 1) {
+        cost := left_counts[i] * left_bounds[i].surface_area()
+              + right_counts[i + 1] * right_bounds[i + 1].surface_area();
+
+        if cost < best_cost {
+            best_cost = cost;
+            best_split = i;
+        }
+    }
+
+    split_value := min_c.get(axis) + range * (best_split + 1) / bucket_count;
+    mid := start;
+
+    for i in start..end {
+        c := triangles[i].center().get(axis);
+
+        if c < split_value {
+            tmp := triangles[i];
+            triangles[i] = triangles[mid];
+            triangles[mid] = tmp;
+            mid += 1;
+        }
+    }
+
+    // degenerate case
+    if mid == start || mid == end {
+        mid = start + (end - start) / 2;
+    }
+
+    return mid;
+}
+
+fn build_bvh(Triangle[] triangles, i32 start, i32 end, BVHNode[] nodes) -> i32 {
+    node_index := nodes.size;
+    nodes.push(BVHNode {
+        bounds = AABB {
+            min = Vector3::from(1.0e30),
+            max = Vector3::from(-1.0e30)
+        },
+        left = -1, right = -1,
+        start, end
+    });
+
+    node := &nodes[node_index];
+    if end - start <= 1 {
+        node.bounds = triangles[start].aabb();
+        return node_index;
+    }
+
+    bbox := triangles[start].aabb();
+
+    for i in start + 1..end {
+        bbox = bbox.merge(triangles[i].aabb());
+    }
+
+    node.bounds = bbox;
+    extent := bbox.max.sub(bbox.min);
+
+    axis := 0;
+    if extent.y > extent.x { axis = 1; }
+    if extent.z > extent.get(axis) { axis = 2; }
+
+    mid := partition_triangles(triangles, start, end, axis);
+    left_index := build_bvh(triangles, start, mid, nodes);
+    right_index := build_bvh(triangles, mid, end, nodes);
+
+    node := &nodes[node_index];
+    node.left = left_index;
+    node.right = right_index;
+
+    return node_index;
+}

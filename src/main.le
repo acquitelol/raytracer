@@ -1,0 +1,373 @@
+use std/allocators/heap;
+use std/prelude;
+use std/raylib;
+use std/math;
+
+use scene/index;
+use lib/index;
+
+fn main() {
+    #set_allocator(HeapAllocator::new());
+    rl::init_window(Screen::Width / 2, Screen::Height / 2, "Raytracer");
+    defer rl::close_window();
+
+    rl::set_target_fps(60);
+    rl::disable_cursor();
+
+    camera := Camera3D {
+        position = Vector3::new(0, 1.2, 0),
+        target = Vector3::new(0, 0, 4),
+        up = Vector3::new(0, 1, 0),
+        fovy = 60,
+        projection = CameraProjection::CAMERA_PERSPECTIVE
+    };
+
+    prev_position := camera.position.clone();
+    prev_target := camera.target.clone();
+
+    spheres := [
+        Sphere {
+            center = Vector3::new(400, 600, -300),
+            color = #cast(Color, &0xfffcb3fc),
+            intensity = 10,
+            radius = 200,
+            kind = Kind::Emissive
+        }
+    ];
+
+    plane := Plane {
+        point = Vector3::new(0, 0, 0),
+        normal = Vector3::new(0, 1, 0),
+        color = #cast(Color, &0xffdddddd)
+    };
+
+    triangles := []f32;
+    nodes := []BVHNode;
+
+    objects := [
+        Object {
+            model = rl::load_model("models/dragon4.obj"),
+            color = #cast(Color, &0xffb87bed),
+            intensity = 0,
+            ior = 1.5,
+            rough = 0,
+            kind = Kind::Glass,
+            transform = Matrix::scale(2, 2, 2)
+                .mul(Matrix::rotate(Vector3::new(0, 1, 0), PI / 4))
+                .mul(Matrix::translate(0.75, 0.6, 2))
+        },
+        Object {
+            model = rl::load_model("models/dragon4.obj"),
+            color = #cast(Color, &0xffed7b95),
+            intensity = 0,
+            ior = 1.5,
+            rough = 0,
+            kind = Kind::Glass,
+            transform = Matrix::scale(2, 2, 2)
+                .mul(Matrix::rotate(Vector3::new(0, 1, 0), -PI / 3))
+                .mul(Matrix::translate(-1, 0.6, 3))
+        },
+    ];
+
+    //bvh_gc := GCAllocator::new();
+    //bvh_gc.set_growth_factor(1);
+    //bvh_gc.set_threshold(1024 * 1024 * 1024 * 1024);
+
+    $printf("[()] Generating triangles for {} objects", objects.len());
+
+    for idx, obj in objects.iter().enumerate() {
+        for i in 0..obj.model.meshCount {
+            mesh := obj.model.meshes[i];
+
+            for j in 0..mesh.triangleCount {
+                v0 := v1 := v2 := n0 := n1 := n2 := Vector3::zero();
+
+                if mesh.indices {
+                    j0 := mesh.indices[j * 3 + 0];
+                    j1 := mesh.indices[j * 3 + 1];
+                    j2 := mesh.indices[j * 3 + 2];
+
+                    v0 = Vector3::new(mesh.vertices[j0 * 3 + 0], mesh.vertices[j0 * 3 + 1], mesh.vertices[j0 * 3 + 2]);
+                    v1 = Vector3::new(mesh.vertices[j1 * 3 + 0], mesh.vertices[j1 * 3 + 1], mesh.vertices[j1 * 3 + 2]);
+                    v2 = Vector3::new(mesh.vertices[j2 * 3 + 0], mesh.vertices[j2 * 3 + 1], mesh.vertices[j2 * 3 + 2]);
+
+                    n0 = Vector3::new(mesh.normals[j0 * 3 + 0], mesh.normals[j0 * 3 + 1], mesh.normals[j0 * 3 + 2]);
+                    n1 = Vector3::new(mesh.normals[j1 * 3 + 0], mesh.normals[j1 * 3 + 1], mesh.normals[j1 * 3 + 2]);
+                    n2 = Vector3::new(mesh.normals[j2 * 3 + 0], mesh.normals[j2 * 3 + 1], mesh.normals[j2 * 3 + 2]);
+                } else {
+                    base := j * 9;
+                    v0 = Vector3::new(mesh.vertices[base + 0], mesh.vertices[base + 1], mesh.vertices[base + 2]);
+                    v1 = Vector3::new(mesh.vertices[base + 3], mesh.vertices[base + 4], mesh.vertices[base + 5]);
+                    v2 = Vector3::new(mesh.vertices[base + 6], mesh.vertices[base + 7], mesh.vertices[base + 8]);
+
+                    n0 = Vector3::new(mesh.normals[base + 0], mesh.normals[base + 1], mesh.normals[base + 2]);
+                    n1 = Vector3::new(mesh.normals[base + 3], mesh.normals[base + 4], mesh.normals[base + 5]);
+                    n2 = Vector3::new(mesh.normals[base + 6], mesh.normals[base + 7], mesh.normals[base + 8]);
+                }
+
+                for v in [v0, v1, v2] {
+                    v := v.transform(obj.transform);
+
+                    triangles.push(v.x);
+                    triangles.push(v.y);
+                    triangles.push(v.z);
+                    triangles.push(#cast(f32, idx));
+                }
+
+                for n in [n0, n1, n2] {
+                    n := n.transform(obj.transform.inverse().transpose()).normalize();
+
+                    triangles.push(n.x);
+                    triangles.push(n.y);
+                    triangles.push(n.z);
+                    triangles.push(#cast(f32, idx));
+                }
+            }
+        }
+
+        //triangles := triangles.chunks(12).map(fn(x) #cast(Triangle, &x[0])).collect();
+    }
+
+    $printf("[()] Building BVH for {} triangles", triangles.len() / 24);
+    build_bvh(#cast(Triangle[], triangles), 0, triangles.len() / 24, nodes);
+    $println("[()] Done generating triangles");
+
+    //$dbg(triangles.chunks(24).map(fn(x) #cast(Triangle, &x[0])).collect());
+    //$dbg(nodes);
+
+    shader := rl::load_shader(nil, "src/shader/raytracer.glsl");
+    defer rl::unload_shader(shader);
+
+    len := triangles.len() / 4;
+
+    for node in nodes {
+        triangles.push(node.bounds.min.x);
+        triangles.push(node.bounds.min.y);
+        triangles.push(node.bounds.min.z);
+        triangles.push(0.0);
+
+        triangles.push(node.bounds.max.x);
+        triangles.push(node.bounds.max.y);
+        triangles.push(node.bounds.max.z);
+        triangles.push(0.0);
+
+        triangles.push(node.left);
+        triangles.push(node.right);
+        triangles.push(node.start);
+        triangles.push(node.end);
+    }
+
+    $println("[()] Done pushing BVH nodes into triangles array");
+
+    rl::set_shader_value(
+        shader,
+        rl::get_shader_location(shader, "triangles_size"),
+        &(len / 6),
+        ShaderUniformDataType::SHADER_UNIFORM_INT
+    );
+
+    rl::set_shader_value(
+        shader,
+        rl::get_shader_location(shader, "bvh_size"),
+        &nodes.size,
+        ShaderUniformDataType::SHADER_UNIFORM_INT
+    );
+
+    rl::set_shader_value(
+        shader,
+        rl::get_shader_location(shader, "bvh_start_index"),
+        &len,
+        ShaderUniformDataType::SHADER_UNIFORM_INT
+    );
+
+    glUseProgram(shader.id);
+
+    u32 triangles_tbo;
+    u32 triangles_buf;
+
+    glGenBuffers(1, &triangles_buf);
+    glBindBuffer(GL::TEXTURE_BUFFER, triangles_buf);
+    glBufferData(GL::TEXTURE_BUFFER, triangles.len() * #size(f32), &triangles[0], GL::STATIC_DRAW);
+
+    glActiveTexture(GL::TEXTURE0);
+    glGenTextures(1, &triangles_tbo);
+    glBindTexture(GL::TEXTURE_BUFFER, triangles_tbo);
+    glTexBuffer(GL::TEXTURE_BUFFER, GL::RGBA32F, triangles_buf);
+    glUniform1i(rl::get_shader_location(shader, "triangles"), 0);
+
+    camera.apply_on_shader(shader);
+    plane.apply_on_shader(shader);
+
+    for i, sphere in spheres.iter().enumerate() {
+        sphere.apply_on_shader(shader, i);
+    }
+
+    rl::set_shader_value(
+        shader,
+        rl::get_shader_location(shader, "spheres_size"),
+        &spheres.size,
+        ShaderUniformDataType::SHADER_UNIFORM_INT
+    );
+
+    for i, object in objects.iter().enumerate() {
+        object.apply_on_shader(shader, i);
+    }
+
+    rl::set_shader_value(
+        shader,
+        rl::get_shader_location(shader, "objects_size"),
+        &objects.size,
+        ShaderUniformDataType::SHADER_UNIFORM_INT
+    );
+
+    tex := rl::get_default_texture();
+    tex.width = Screen::Width;
+    tex.height = Screen::Height;
+
+    history := rl::load_render_texture(Screen::Width, Screen::Height);
+    defer rl::unload_render_texture(history);
+
+    depth := 1024;
+    samples := 1;
+    frameIndex := 1;
+    rendering := true;
+    #reset_allocator();
+
+    while !rl::window_should_close() {
+        rl::update_camera(#cast(Camera *, &camera), CameraMode::CAMERA_FREE);
+        camera.apply_on_shader(shader);
+
+        if prev_position != camera.position || prev_target != camera.target {
+            frameIndex = 1;
+        }
+
+        prev_position = camera.position.clone();
+        prev_target = camera.target.clone();
+
+        rl::set_shader_value(
+            shader,
+            rl::get_shader_location(shader, "frameIndex"),
+            &frameIndex,
+            ShaderUniformDataType::SHADER_UNIFORM_INT
+        );
+
+        frameIndex += 1;
+
+        if rl::is_key_pressed(KeyboardKey::KEY_Z) {
+            depth = math::max(depth / 2, 1);
+            frameIndex = 1;
+        }
+
+        if rl::is_key_pressed(KeyboardKey::KEY_X) {
+            depth = math::min(depth * 2, 1024);
+            frameIndex = 1;
+        }
+
+        if rl::is_key_pressed(KeyboardKey::KEY_C) {
+            samples = math::max(samples / 2, 1);
+        }
+
+        if rl::is_key_pressed(KeyboardKey::KEY_V) {
+            samples = math::min(samples * 2, 1024);
+        }
+
+        if rl::is_key_pressed(KeyboardKey::KEY_P) {
+            rendering = !rendering;
+        }
+
+        if rl::is_key_down(KeyboardKey::KEY_R) || (frameIndex % 100 == 0 && rendering) {
+            image := rl::load_image_from_texture(history.texture);
+            rl::image_flip_vertical(&image);
+            rl::export_image(image, "render.png");
+            rl::unload_image(image);
+        }
+
+        sphere := &spheres[spheres.len() - 1];
+
+        if rl::is_key_down(KeyboardKey::KEY_B) {
+            sphere.intensity = math::max(sphere.intensity / 2, 1);
+            frameIndex = 1;
+        }
+
+        if rl::is_key_down(KeyboardKey::KEY_N) {
+            sphere.intensity = math::min(sphere.intensity * 2, 128);
+            frameIndex = 1;
+        }
+
+        for i, sphere in spheres.iter().enumerate() {
+            sphere.apply_on_shader(shader, i);
+        }
+
+        if rl::is_key_down(KeyboardKey::KEY_M) {
+            sphere.intensity = 0;
+            frameIndex = 1;
+        }
+
+        rl::set_shader_value(
+            shader,
+            rl::get_shader_location(shader, "depth"),
+            &depth,
+            ShaderUniformDataType::SHADER_UNIFORM_INT
+        );
+
+        rl::set_shader_value(
+            shader,
+            rl::get_shader_location(shader, "samples"),
+            &samples,
+            ShaderUniformDataType::SHADER_UNIFORM_INT
+        );
+
+        rl::begin_drawing();
+            rl::clear_background(BLACK);
+            rl::begin_texture_mode(history);
+                rl::begin_shader_mode(shader);
+
+                rl::draw_texture_pro(
+                    tex,
+                    Rectangle { x = 0, y = 0, width = tex.width, height = -tex.height },
+                    Rectangle { x = 0, y = 0, width = tex.width, height = tex.height },
+                    Vector2 { x = 0, y = 0 },
+                    0, WHITE
+                );
+
+                rl::end_shader_mode();
+            rl::end_texture_mode();
+
+            rl::set_shader_value_texture(
+                shader,
+                rl::get_shader_location(shader, "history"),
+                &history.texture
+            );
+
+            rl::draw_texture_pro(
+                history.texture,
+                Rectangle { x = 0, y = 0, width = history.texture.width, height = -history.texture.height },
+                Rectangle { x = 0, y = 0, width = Screen::Width / 2, height = Screen::Height / 2 },
+                Vector2 { x = 0, y = 0 },
+                0, WHITE
+            );
+
+            rl::draw_fps(10, 10);
+
+            rl::draw_text(
+                "Triangles: {}, Light: {}, Rendering: {}".format(len / 6, #cast(i32, sphere.intensity), rendering),
+                10, (Screen::Height / 2) - 50, 10, PINK
+            );
+
+            rl::draw_text(
+                "Depth: {}, Samples: {}, Accumulated: {}".format(depth, samples, frameIndex * samples),
+                10, (Screen::Height / 2) - 40, 10, PINK
+            );
+
+            rl::draw_text(
+                "Position: {}".format(camera.position.__triple__()),
+                10, (Screen::Height / 2) - 30, 10, PINK
+            );
+
+            rl::draw_text(
+                "Target: {}".format(camera.target.__triple__()),
+                10, (Screen::Height / 2) - 20, 10, PINK
+            );
+        rl::end_drawing();
+    }
+}

@@ -1,0 +1,28 @@
+use std/raylib;
+
+global pub;
+
+struct AABB {
+    Vector3 min,
+    Vector3 max,
+}
+
+fn AABB::merge(AABB a, AABB b) -> AABB {
+    return AABB {
+        min = Vector3::new(
+            math::min(a.min.x, b.min.x),
+            math::min(a.min.y, b.min.y),
+            math::min(a.min.z, b.min.z)
+        ),
+        max = Vector3::new(
+            math::max(a.max.x, b.max.x),
+            math::max(a.max.y, b.max.y),
+            math::max(a.max.z, b.max.z)
+        )
+    };
+}
+
+fn AABB::surface_area(AABB self) -> f32 {
+    d := self.max.sub(self.min);
+    return 2.0 * (d.x * d.y + d.y * d.z + d.z * d.x);
+}
