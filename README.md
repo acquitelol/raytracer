@@ -19,7 +19,7 @@
   </table>
 </div>
 
-> These dragons have 1,742,612 triangles each! That means the scenes contain 3,485,224 triangles!
+> These dragons have 871,306 triangles each! That means the scenes each contain 1,742,612 triangles!
 
 ### ♡ **Why does this exist?**
 
