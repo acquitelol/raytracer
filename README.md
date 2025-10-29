@@ -19,6 +19,8 @@
   </table>
 </div>
 
+> These dragons have 1,742,612 triangles each! That means the scenes contain 3,485,224 triangles!
+
 ### ♡ **Why does this exist?**
 
 * I had wanted to write a Raytracer for a while, and I finally got the opportunity to do so!
