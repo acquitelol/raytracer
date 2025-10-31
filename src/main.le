@@ -57,7 +57,7 @@ fn main() {
                 .mul(Matrix::translate(0.75, 0.6, 2))
         },
         Object {
-            model = rl::load_model("models/dragon4.obj"),
+            model = rl::load_model("models/xyz_rgb_dragon.obj"),
             color = #cast(Color, &0xffed7b95),
             intensity = 0,
             ior = 1.5,

@@ -12,14 +12,14 @@
       </td>
       <td width="50%">
         <div>
-            <img src="images/with_sky.png" />
+            <img src="images/new_dragon.png" />
         </div>
       </td>
     </tr>
   </table>
 </div>
 
-> These dragons have 871,306 triangles each! That means the scenes each contain 1,742,612 triangles!
+> The scene on the left has 1,742,612 triangles, and the one on the right has 4,480,758 triangles!
 
 ### ♡ **Why does this exist?**
 
@@ -29,7 +29,7 @@
 
 `make` (or `make run` to also run the raytracer)
 
-(Note: you may have to set `ELLE_LIBS` to link with OpenGL for linux.)
+(Note: you may have to set `ELLE_LIBS` to link with OpenGL for linux, ie `make run ELLE_LIBS='-lraylib -lGL'`)
 
 ### ♡ **Licensing**
 
