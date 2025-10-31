@@ -113,15 +113,13 @@ vec4 get_vertex(int i, int offset) {
 }
 
 Triangle get_triangle(int i) {
-    vec4 v0 = get_vertex(i, 0);
-    vec4 v1 = get_vertex(i, 1);
-    vec4 v2 = get_vertex(i, 2);
+    vec4 a = texelFetch(triangles, i * 5 + 0);
+    vec4 b = texelFetch(triangles, i * 5 + 1);
+    vec4 c = texelFetch(triangles, i * 5 + 2);
+    vec4 d = texelFetch(triangles, i * 5 + 3);
+    vec4 e = texelFetch(triangles, i * 5 + 4);
 
-    vec4 n0 = get_vertex(i, 3);
-    vec4 n1 = get_vertex(i, 4);
-    vec4 n2 = get_vertex(i, 5);
-
-    return Triangle(v0.rgb, v1.rgb, v2.rgb, n0.rgb, n1.rgb, n2.rgb, int(v0.w));
+    return Triangle(a.rgb, vec3(a.a, b.rg), vec3(b.ba, c.r), vec3(c.gba), d.rgb, vec3(d.a, e.rg), int(e.b));
 }
 
 BVHNode get_bvh_node(int i) {

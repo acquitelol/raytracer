@@ -8,7 +8,7 @@ use lib/index;
 
 fn main() {
     #set_allocator(HeapAllocator::new());
-    rl::init_window(Screen::Width / 2, Screen::Height / 2, "Raytracer");
+    rl::init_window(Screen::Width / Screen::Scale, Screen::Height / Screen::Scale, "Raytracer");
     defer rl::close_window();
 
     rl::set_target_fps(60);
@@ -111,7 +111,6 @@ fn main() {
                     triangles.push(v.x);
                     triangles.push(v.y);
                     triangles.push(v.z);
-                    triangles.push(#cast(f32, idx));
                 }
 
                 for n in [n0, n1, n2] {
@@ -120,16 +119,18 @@ fn main() {
                     triangles.push(n.x);
                     triangles.push(n.y);
                     triangles.push(n.z);
-                    triangles.push(#cast(f32, idx));
                 }
+
+                triangles.push(#cast(f32, idx));
+                triangles.push(0.0);
             }
         }
 
         //triangles := triangles.chunks(12).map(fn(x) #cast(Triangle, &x[0])).collect();
     }
 
-    $printf("[()] Building BVH for {} triangles", triangles.len() / 24);
-    build_bvh(#cast(Triangle[], triangles), 0, triangles.len() / 24, nodes);
+    $printf("[()] Building BVH for {} triangles", triangles.len() / 20);
+    build_bvh(#cast(Triangle[], triangles), 0, triangles.len() / 20, nodes);
     $println("[()] Done generating triangles");
 
     //$dbg(triangles.chunks(24).map(fn(x) #cast(Triangle, &x[0])).collect());
@@ -162,7 +163,7 @@ fn main() {
     rl::set_shader_value(
         shader,
         rl::get_shader_location(shader, "triangles_size"),
-        &(len / 6),
+        &(len / 5),
         ShaderUniformDataType::SHADER_UNIFORM_INT
     );
 
@@ -342,7 +343,7 @@ fn main() {
             rl::draw_texture_pro(
                 history.texture,
                 Rectangle { x = 0, y = 0, width = history.texture.width, height = -history.texture.height },
-                Rectangle { x = 0, y = 0, width = Screen::Width / 2, height = Screen::Height / 2 },
+                Rectangle { x = 0, y = 0, width = Screen::Width / Screen::Scale, height = Screen::Height / Screen::Scale },
                 Vector2 { x = 0, y = 0 },
                 0, WHITE
             );
@@ -350,23 +351,23 @@ fn main() {
             rl::draw_fps(10, 10);
 
             rl::draw_text(
-                "Triangles: {}, Light: {}, Rendering: {}".format(len / 6, #cast(i32, sphere.intensity), rendering),
-                10, (Screen::Height / 2) - 50, 10, PINK
+                "Triangles: {}, Light: {}, Time: {}".format(len / 5, #cast(i32, sphere.intensity), rl::get_frame_time()),
+                10, (Screen::Height / Screen::Scale) - 50, 10, PINK
             );
 
             rl::draw_text(
                 "Depth: {}, Samples: {}, Accumulated: {}".format(depth, samples, frameIndex * samples),
-                10, (Screen::Height / 2) - 40, 10, PINK
+                10, (Screen::Height / Screen::Scale) - 40, 10, PINK
             );
 
             rl::draw_text(
                 "Position: {}".format(camera.position.__triple__()),
-                10, (Screen::Height / 2) - 30, 10, PINK
+                10, (Screen::Height / Screen::Scale) - 30, 10, PINK
             );
 
             rl::draw_text(
                 "Target: {}".format(camera.target.__triple__()),
-                10, (Screen::Height / 2) - 20, 10, PINK
+                10, (Screen::Height / Screen::Scale) - 20, 10, PINK
             );
         rl::end_drawing();
     }

@@ -1,8 +1,11 @@
 global pub;
 
 enum Screen {
-    Width = 1920,
-    Height = 1080
+    Width = 3840,
+    Height = 2160,
+    // viewport scale, for previewing the render. a scale of 4
+    // means the preview is 1/4 of the full resolution
+    Scale = 4
 }
 
 enum Kind {

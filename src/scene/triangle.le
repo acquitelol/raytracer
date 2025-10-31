@@ -5,17 +5,13 @@ global pub;
 
 struct Triangle {
     Vector3 v0,
-    f32 pad0,
     Vector3 v1,
-    f32 pad1,
     Vector3 v2,
-    f32 pad2,
     Vector3 n0,
-    f32 pad3,
     Vector3 n1,
-    f32 pad4,
+    f32 pad0,
     Vector3 n2,
-    f32 pad5
+    f32 pad1
 }
 
 fn Triangle::center(Triangle self) -> Vector3 {
