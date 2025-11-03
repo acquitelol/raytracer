@@ -313,7 +313,7 @@ Hit find_hit(Ray ray) {
                     vec3 point = ray.position + ray.direction * (t = ts);
 
                     float w = 1.0 - u - v;
-                    vec3 normal = normalize(tri.n0 * w + tri.n1 * u + tri.n2);
+                    vec3 normal = normalize(tri.n0 * w + tri.n1 * u + tri.n2 * v);
 
                     // vec3 normal = normalize(cross(tri.v1 - tri.v0, tri.v2 - tri.v0));
                     // finalColor = vec4((normal + 1) / 2, 1);

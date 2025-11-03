@@ -8,4 +8,4 @@ run: raytracer
 	$<
 
 raytracer: src/main.le
-	ellec $< $(ELLE_FLAGS) $(foreach L,$(ELLE_LIBS),-z $(L))
+	ellec $< $(ELLE_FLAGS) $(foreach L,$(ELLE_LIBS),-z $(L)) -t
