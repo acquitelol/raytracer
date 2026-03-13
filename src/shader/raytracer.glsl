@@ -129,11 +129,11 @@ BVHNode get_bvh_node(int i) {
 
     vec3 min = a.xyz;
     vec3 max = b.xyz;
-    int left  = int(c.x);
+    int left = int(c.x);
     int right = int(c.y);
 
     int start = int(c.z);
-    int end   = int(c.w);
+    int end = int(c.w);
 
     // return BVHNode(vec3(0), vec3(0), 0, 0, 0, 0);
     return BVHNode(min, max, left, right, start, end);
@@ -359,6 +359,7 @@ Hit find_hit(Ray ray) {
 vec4 sky_color(vec3 dir) {
     float t = 0.5 * (dir.y + 1.0);
     return vec4(mix(vec3(1.0), vec3(0.5, 0.7, 1.0), t), 1.0);
+    // return vec4(0, 0, 0, 1);
 }
 
 vec4 trace_ray(Ray ray, vec2 seed) {
@@ -397,6 +398,7 @@ vec4 trace_ray(Ray ray, vec2 seed) {
             new_dir = glass_scatter(current.direction, hit.point, n, eta, seed);
         } else {
             new_dir = reflect(current.direction, n);
+            // new_dir = normalize(n + rand_dir(seed));
         }
 
         vec3 seed_dir = rand_dir(seed += 0.1);
@@ -416,9 +418,9 @@ void main() {
 
     for (int i = 0; i < samples; ++i) {
         vec2 seed = vec2(
-            fract(sin(dot(fragTexCoord + float(frameIndex), vec2(12.9898, 78.233))) * 43758.5453),
-            fract(sin(dot(fragTexCoord + float(i), vec2(93.9898, 67.345))) * 12345.6789)
-        );
+                fract(sin(dot(fragTexCoord + float(frameIndex), vec2(12.9898, 78.233))) * 43758.5453),
+                fract(sin(dot(fragTexCoord + float(i), vec2(93.9898, 67.345))) * 12345.6789)
+            );
 
         float n1 = rand(seed);
         float n2 = rand(seed + 78.233);
