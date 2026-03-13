@@ -7,9 +7,9 @@ global pub;
 struct Object {
     Model model,
     Color color,
-    f32 intensity,
-    f32 ior,
-    f32 rough,
+    @unused f32 intensity,
+    @unused f32 ior,
+    @unused f32 rough,
     Kind kind,
     Matrix transform
 }

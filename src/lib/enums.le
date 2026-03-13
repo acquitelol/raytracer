@@ -5,7 +5,7 @@ enum Screen {
     Height = 1080,
     // viewport scale, for previewing the render. a scale of 4
     // means the preview is 1/4 of the full resolution
-    Scale = 4
+    Scale = 2
 }
 
 enum Kind {

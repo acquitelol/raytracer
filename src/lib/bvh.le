@@ -39,17 +39,15 @@ fn partition_triangles(Triangle[] triangles, i32 start, i32 end, i32 axis) -> i3
         return start + (end - start) / 2;
     }
 
-    // yes, 2 buckets is very low
     // strangely, performance degrades as I increase the number of buckets
     // やり方間違ってるかもwww ¯\_(ᵕ—ᴗ—)_/¯
-    bucket_count := 2;
-    Bucket buckets[bucket_count];
-    i32 left_counts[bucket_count];
-    i32 right_counts[bucket_count];
-    AABB left_bounds[bucket_count];
-    AABB right_bounds[bucket_count];
+    Bucket[2] buckets;
+    i32[2] left_counts;
+    i32[2] right_counts;
+    AABB[2] left_bounds;
+    AABB[2] right_bounds;
 
-    for i in 0..bucket_count {
+    for i in 0..buckets.len() {
         buckets[i] = Bucket {
             count = 0,
             bounds = left_bounds[i] = right_bounds[i] = AABB {
@@ -63,15 +61,15 @@ fn partition_triangles(Triangle[] triangles, i32 start, i32 end, i32 axis) -> i3
 
     for i in start..end {
         c := triangles[i].center().get(axis);
-        idx := #cast(i32, ((c - min_c.get(axis)) / range) * (bucket_count - 1));
-        idx := math::clamp(idx, 0, bucket_count - 1);
+        idx := #cast(i32, ((c - min_c.get(axis)) / range) * (buckets.len() - 1));
+        idx := math::clamp(idx, 0, buckets.len() - 1);
 
         (&buckets[idx]).count += 1;
         (&buckets[idx]).bounds = buckets[idx].bounds.merge(triangles[i].aabb());
     }
 
     acc := 0;
-    for i in 0..bucket_count {
+    for i in 0..buckets.len() {
         acc += buckets[i].count;
         left_counts[i] = acc;
         left_bounds[i] = i == 0
@@ -80,10 +78,10 @@ fn partition_triangles(Triangle[] triangles, i32 start, i32 end, i32 axis) -> i3
     }
 
     acc := 0;
-    for i in (0..bucket_count).rev() {
+    for i in (0..buckets.len()).rev() {
         acc += buckets[i].count;
         right_counts[i] = acc;
-        right_bounds[i] = i == bucket_count - 1
+        right_bounds[i] = i == buckets.len() - 1
             ? buckets[i].bounds
             : right_bounds[i + 1].merge(buckets[i].bounds);
     }
@@ -91,7 +89,7 @@ fn partition_triangles(Triangle[] triangles, i32 start, i32 end, i32 axis) -> i3
     best_split := -1;
     best_cost := 1e30;
 
-    for i in 0..(bucket_count - 1) {
+    for i in 0..(buckets.len() - 1) {
         cost := left_counts[i] * left_bounds[i].surface_area()
               + right_counts[i + 1] * right_bounds[i + 1].surface_area();
 
@@ -101,7 +99,7 @@ fn partition_triangles(Triangle[] triangles, i32 start, i32 end, i32 axis) -> i3
         }
     }
 
-    split_value := min_c.get(axis) + range * (best_split + 1) / bucket_count;
+    split_value := min_c.get(axis) + range * (best_split + 1) / buckets.len();
     mid := start;
 
     for i in start..end {

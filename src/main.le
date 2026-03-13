@@ -1,13 +1,10 @@
-use std/allocators/heap;
 use std/prelude;
 use std/raylib;
-use std/math;
 
 use scene/index;
 use lib/index;
 
 fn main() {
-    #set_allocator(HeapAllocator::new());
     rl::init_window(Screen::Width / Screen::Scale, Screen::Height / Screen::Scale, "Raytracer");
     defer rl::close_window();
 
@@ -25,7 +22,7 @@ fn main() {
     prev_position := camera.position.clone();
     prev_target := camera.target.clone();
 
-    spheres := [
+    spheres := #[
         Sphere {
             center = Vector3::new(400, 600, -300),
             color = #cast(Color, &0xfffcb3fc),
@@ -44,7 +41,7 @@ fn main() {
     triangles := []f32;
     nodes := []BVHNode;
 
-    objects := [
+    objects := #[
         Object {
             model = rl::load_model("models/dragon4.obj"),
             color = #cast(Color, &0xffb87bed),
@@ -206,7 +203,7 @@ fn main() {
     rl::set_shader_value(
         shader,
         rl::get_shader_location(shader, "spheres_size"),
-        &spheres.size,
+        &spheres.len(),
         ShaderUniformDataType::SHADER_UNIFORM_INT
     );
 
@@ -217,7 +214,7 @@ fn main() {
     rl::set_shader_value(
         shader,
         rl::get_shader_location(shader, "objects_size"),
-        &objects.size,
+        &objects.len(),
         ShaderUniformDataType::SHADER_UNIFORM_INT
     );
 

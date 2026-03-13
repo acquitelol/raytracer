@@ -6,10 +6,10 @@ global pub;
 struct Sphere {
     Vector3 center,
     Color color,
-    f32 intensity,
     f32 radius,
-    f32 ior,
-    f32 rough,
+    @unused f32 intensity,
+    @unused f32 ior,
+    @unused f32 rough,
     Kind kind
 }
 
