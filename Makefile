@@ -1,5 +1,5 @@
 ELLE_LIBS ?= -lraylib -framework OpenGL -Wl,-rpath,$(HOME)/.local/lib
-ELLE_FLAGS ?= -o raytracer -t --nogc
+ELLE_FLAGS ?= -o raytracer -t
 
 default: raytracer
 
