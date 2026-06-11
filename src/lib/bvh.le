@@ -64,8 +64,8 @@ fn partition_triangles(Triangle[] triangles, i32 start, i32 end, i32 axis) -> i3
         idx := #cast(i32, ((c - min_c.get(axis)) / range) * (buckets.len() - 1));
         idx := math::clamp(idx, 0, buckets.len() - 1);
 
-        (&buckets[idx]).count += 1;
-        (&buckets[idx]).bounds = buckets[idx].bounds.merge(triangles[i].aabb());
+        buckets[idx].count += 1;
+        buckets[idx].bounds = buckets[idx].bounds.merge(triangles[i].aabb());
     }
 
     acc := 0;
